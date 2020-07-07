@@ -33,9 +33,11 @@ export function subtractQuantity(item){
     }
 }
 
-export function updateCart(){
+export function updateCart(items,total){
 
     return {
-        type:UPDATE_CART
+        type:UPDATE_CART,
+        items,
+        total
     }
 }

@@ -8,7 +8,7 @@ import { Container, Left, Header, Icon, Right, Spinner } from 'native-base';
 
 import { useSelector, useDispatch } from 'react-redux'
 import { callMenuApi } from '../ActionCreators/FetchMenuActions'
-import { addToCart,removeItem, subtractQuantity,addQuantity, updateCart } from '../ActionCreators/CartActions'
+import { addToCart, removeItem, subtractQuantity, addQuantity, updateCart } from '../ActionCreators/CartActions'
 
 import vegIcon from '../assets/images/veg.png';
 import nonVegIcon from '../assets/images/nonveg.png';
@@ -22,7 +22,7 @@ import { placeOrder, modifyOrder } from '../Services/Requests';
 
 const CartScreen = ({ navigation, route }) => {
 
-    const {restaurantcode, tableid } = route.params
+    const { restaurantcode, tableid } = route.params
 
     const { orderInfo } = route.params
     const [isOrderOpen, setOrderOpen] = useState(false)
@@ -41,14 +41,26 @@ const CartScreen = ({ navigation, route }) => {
 
 
     useEffect(() => {
-        //let orderDetails = JSON.parse(orderInfo)
-        // const productList = [...cartItems, ...orderDetails.orders];
+       
         setProducts(cartItems)
+
+        const cart = localStorage.getItem('cart')
+        const cartTotal = localStorage.getItem('total')
+
+        
+        if(cart != null && cartItems.length < 1){
+            dispatch(updateCart(JSON.parse(cart),parseInt(cartTotal)))
+        }
 
     }, []);
 
+    useEffect(() => {
+        setProducts(cartItems)
+        storeCart()
+    },[response.cartReducer])
 
-    
+
+
     const onPlaceOrderClick = () => {
         let orderDetails = JSON.parse(orderInfo)
 
@@ -66,8 +78,8 @@ const CartScreen = ({ navigation, route }) => {
             }
         }
 
-       /// console.log("PRODUCTS : "  + JSON.stringify(products))
-        
+        /// console.log("PRODUCTS : "  + JSON.stringify(products))
+
 
         if (products.length < 1) {
             alert("Please add items to place order")
@@ -91,10 +103,10 @@ const CartScreen = ({ navigation, route }) => {
             console.log("RESPONSE = " + JSON.stringify(res))
             if (res.status == 1) {
                 // clearCart()
-                dispatch((restaurantcode))
-                dispatch(updateCart())
+                dispatch(callMenuApi(restaurantcode))
+                dispatch(updateCart([], 0))
                 setLoading(false)
-                navigation.replace("OrderSuccess", { ...route.params,comment:comment })
+                navigation.replace("OrderSuccess", { ...route.params, comment: comment })
             } else {
                 setLoading(false)
             }
@@ -110,10 +122,10 @@ const CartScreen = ({ navigation, route }) => {
 
             if (res.status == 1) {
                 dispatch(callMenuApi(restaurantcode))
-                dispatch(updateCart())
+                dispatch(updateCart([], 0))
                 setLoading(false)
-                navigation.replace("OrderSuccess", { ...route.params,comment:comment })
-               
+                navigation.replace("OrderSuccess", { ...route.params, comment: comment })
+
             } else {
                 setLoading(false)
             }
@@ -121,43 +133,49 @@ const CartScreen = ({ navigation, route }) => {
         }).catch(err => setLoading(false))
     }
 
+    const storeCart = () => {
+        console.log("STORING")
+        localStorage.setItem('cart',JSON.stringify(cartItems))
+        localStorage.setItem('total',JSON.stringify(total))
+    }
+
 
     const addCart = (item) => {
         item.cartQuantity += 1
-       
-        
-        if(item.cartQuantity == 1 ){
-          dispatch(addToCart(item))
+
+
+        if (item.cartQuantity == 1) {
+            dispatch(addToCart(item))
         }
-        else{
-          dispatch(addQuantity(item))
+        else {
+            dispatch(addQuantity(item))
         }
-        
-      }
-    
-      const removeFromCart = (item) => {
-          item.cartQuantity = item.cartQuantity - 1
-          
-         
-    
-            if(item.cartQuantity == 0){
-              dispatch(removeItem(item))
-            }else{
-              
-              dispatch(subtractQuantity(item))
-            }
-      }
-    
-   
-  
+
+    }
+
+    const removeFromCart = (item) => {
+        item.cartQuantity = item.cartQuantity - 1
+
+
+
+        if (item.cartQuantity == 0) {
+            dispatch(removeItem(item))
+        } else {
+
+            dispatch(subtractQuantity(item))
+        }
+    }
+
+
+
     const renderContent = (item, index) => {
 
         return (
             products.map((item) =>
                 <View key={item.id} style={{ flexDirection: 'row', padding: 15, paddingLeft: 20, paddingRight: 20 }}>
-                    <Image resizeMode='contain' style={{ width: 10, height: 10 }} source={item.Is_veg ==1 ? vegIcon : nonVegIcon}></Image>
+                    <Image resizeMode='contain' style={{ width: 10, height: 10 }} source={item.Is_veg == 1 ? vegIcon : nonVegIcon}></Image>
 
-                    <Text style={{ flex: 1, fontFamily:'PROXIMANOVA-SBOLD', paddingLeft: 10, }}>{`${item.name}\n`}<Text style={{ color: Colors.lightGrey, fontFamily:'PROXIMANOVA-REG' }}>{`${item.description}`}</Text></Text>
+                    <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-SBOLD', paddingLeft: 10, }}>{`${item.name}\n`}<Text style={{ color: Colors.lightGrey, fontFamily: 'PROXIMANOVA-REG' }}>{`${item.description}`}</Text></Text>
 
 
                     {item.cartQuantity < 1 ?
@@ -171,12 +189,14 @@ const CartScreen = ({ navigation, route }) => {
                         :
 
                         <View style={{ flexDirection: 'row', alignSelf: 'baseline', borderWidth: 0.5, borderColor: Colors.blue, paddingLeft: 5, paddingRight: 5, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                            <Text style={{ fontSize: 12, padding: 5,fontFamily:'PROXIMANOVA-SBOLD' }}>{item.cartQuantity}</Text>
+
                             <TouchableOpacity onPress={() => addCart(item)} >
                                 <Icon
 
                                     name='md-add' style={{ fontSize: 15, color: Colors.lightGrey, padding: 5, borderLeftWidth: 0.1, borderRightWidth: 0.1, borderColor: "#f2f2f2" }}></Icon>
                             </TouchableOpacity>
+
+                            <Text style={{ fontSize: 12, padding: 5, fontFamily: 'PROXIMANOVA-SBOLD' }}>{item.cartQuantity}</Text>
 
                             <TouchableOpacity onPress={() => removeFromCart(item)}>
                                 <Icon
@@ -188,7 +208,7 @@ const CartScreen = ({ navigation, route }) => {
 
                         </View>
                     }
-                    <Text style={{ textAlign: 'center', alignSelf: 'center', fontFamily:'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} ${item.cost}`} </Text>
+                    <Text style={{ textAlign: 'center', alignSelf: 'center', fontFamily: 'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} ${item.cost}`} </Text>
                 </View>
 
 
@@ -202,9 +222,10 @@ const CartScreen = ({ navigation, route }) => {
     }
 
     const onBack = () => {
-        
-        navigation.navigate("Home",{...route.params})
-        
+
+        //navigation.goBack()
+        navigation.navigate("Home", { ...route.params })
+
     }
 
     return (
@@ -223,11 +244,11 @@ const CartScreen = ({ navigation, route }) => {
 
 
                         <Right>
-                        <Icon 
-                        onPress={() => setRatingVisibility(true)}
-                        style={{fontSize:20}}
-                         name="md-heart-empty"></Icon>    
-                        {/* <Image resizeMode='contain' style={{width:20, height: 15 }} source={require('../assets/images/heart.png')}></Image> */}
+                            <Icon
+                                onPress={() => setRatingVisibility(true)}
+                                style={{ fontSize: 20 }}
+                                name="md-heart-empty"></Icon>
+                            {/* <Image resizeMode='contain' style={{width:20, height: 15 }} source={require('../assets/images/heart.png')}></Image> */}
 
 
 
@@ -246,13 +267,13 @@ const CartScreen = ({ navigation, route }) => {
 
                     <View style={{ flexDirection: 'row', paddingLeft: 20, paddingRight: 20 }}>
 
-                    <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1 }}>
 
-<Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: -0.15, lineHeight: 25, fontFamily:'PROXIMANOVA-BOLD' }}>{'Harish Bakers'}</Text>
-{/* <Text style={{ lineHeight: 25 }}>Best in: Beer, Pizza, Pasta, Butter Chicken...</Text> */}
-<Text style={{ color: Colors.lightGrey, lineHeight: 25,fontFamily:'PROXIMANOVA-REG' }}>{'Sector 7'}</Text>
+                            <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: -0.15, lineHeight: 25, fontFamily: 'PROXIMANOVA-BOLD' }}>{'Demo Restaurant'}</Text>
+                            {/* <Text style={{ lineHeight: 25 }}>Best in: Beer, Pizza, Pasta, Butter Chicken...</Text> */}
+                            <Text style={{ color: Colors.lightGrey, lineHeight: 25, fontFamily: 'PROXIMANOVA-REG' }}>{'Sector 7'}</Text>
 
-</View>
+                        </View>
                         {/* <View >
 
                             <Text style={{ color: 'white', backgroundColor: Colors.green, padding: 10, borderTopLeftRadius: 8, borderTopRightRadius: 8 }}>4.9 <Icon name='ios-star' style={{ color: 'white', fontSize: 16 }}></Icon> </Text>
@@ -264,9 +285,9 @@ const CartScreen = ({ navigation, route }) => {
 
                     {space(6)}
 
-                    <View style={{ flexDirection: 'row', borderWidth: 0.5, borderColor: Colors.blue, borderRadius: 5, padding: 10, alignItems: 'center', marginLeft: 20, marginRight: 20,marginTop:2,marginBottom:2 }}>
-                        <Text style={{ fontSize: 22, color: Colors.blue, fontFamily:'oswald-bold' }}>NOTE</Text>
-                        <Text style={{ flex: 1, fontSize: 10, color: Colors.blue, padding: 5,paddingLeft:10 }}>{`You can't modify your order once you have placed it but\nyou definitely order more by going back to the menu\npage. Have a Happy Meal.`}</Text>
+                    <View style={{ flexDirection: 'row', borderWidth: 0.5, borderColor: Colors.blue, borderRadius: 5, padding: 10, alignItems: 'center', marginLeft: 20, marginRight: 20, marginTop: 2, marginBottom: 2 }}>
+                        <Text style={{ fontSize: 22, color: Colors.blue, fontFamily: 'oswald-bold' }}>NOTE</Text>
+                        <Text style={{ flex: 1, fontSize: 10, color: Colors.blue, padding: 5, paddingLeft: 10 }}>{`You can't modify your order once you have placed it but\nyou definitely order more by going back to the menu\npage. Have a Happy Meal.`}</Text>
 
                     </View>
 
@@ -280,9 +301,9 @@ const CartScreen = ({ navigation, route }) => {
 
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, paddingLeft: 20, paddingRight: 20 }}>
-                    {/* <Image resizeMode='contain' style={{ width: 17, height: 17 }} source={note}></Image> */}
+                        {/* <Image resizeMode='contain' style={{ width: 17, height: 17 }} source={note}></Image> */}
                         <TextInput
-                            style={{ flex: 1, fontSize: 11, padding: 10,fontFamily:'PROXIMANOVA-REG' }}
+                            style={{ flex: 1, fontSize: 11, padding: 10, fontFamily: 'PROXIMANOVA-REG' }}
                             placeholder='Add any request or customisation? Feel free to write it.'
                             placeholderTextColor={Colors.lightGrey}
                             onChangeText={text => setComment(text)}

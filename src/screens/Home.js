@@ -20,8 +20,10 @@ import nonVegIcon from '../assets/images/nonveg.png';
 import Colors from '../constants/Colors';
 import Layout from '../constants/Layout'
 
+import SearchModal from '../Components/Search';
 
-const DATA = [0,1,2,3,4]
+
+
 
 const HomeScreen = ({ navigation, route }) => {
 
@@ -38,34 +40,58 @@ const HomeScreen = ({ navigation, route }) => {
   const [isNonVegOn, setNonVegFilter] = useState(false);
   const [cartTotal, setCartTotal] = useState(0);
   const [isOrderOpen, setOrderOpen] = useState(false)
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isSearchVisibile, setSearchVisibility] = useState(false);
 
 
   const response = useSelector(state => state)
   const dispatch = useDispatch()
 
-  const { total } = response.cartReducer
+  const { total, cartItems } = response.cartReducer
   const { order_status, orderid, orders } = response.orderReducer
 
 
-  const handleResize = () => {
-    setWindowWidth(window.innerWidth)
-  }
+  useEffect(() => {
+
+  }, [])
 
   useEffect(() => {
-    window.addEventListener('resize',handleResize)
-  })
-
-  useEffect(() => {
-    //setSections(response.cartReducer.data)
-
     dispatch(callMenuApi(restaurantcode))
   }, []);
 
   useEffect(() => {
     setSections(response.menuReducer.data)
+    if(response.menuReducer.data.length > 0){
+      updateQuantity()
+    }
 
   }, [response.menuReducer]);
+
+  const updateQuantity = () => {
+    let cart = response.cartReducer.cartItems
+    let list = response.menuReducer.data
+    for (let i = 0; i < cart.length; i++) {
+
+      let index = list.findIndex(x => x.catid === cart[i].cat_id)
+      if (index != -1) {
+        let sectionItem = list[index].item
+        for (let j = 0; j < sectionItem.length; j++) {
+          let itemIndex = sectionItem.findIndex(x => x.id === cart[i].id)
+          sectionItem[itemIndex] = cart[i]
+        }
+      }
+    }
+
+    console.log("MENU 2  " +  JSON.stringify(list))
+
+
+   //setSections([...list])
+
+  }
+
+
+  useEffect(() => {
+    storeCart()
+  }, [response.cartReducer]);
 
   useEffect(() => {
     setOrderOpen(order_status)
@@ -73,16 +99,18 @@ const HomeScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      // console.log("FOCUSED  " + JSON.stringify(sections))
-      // if(sections.length > 0 ){
-      //   checkCart(sections)
-      // }
-
+      
       dispatch(callOrdersApi(restaurantcode, tableid))
+
     })
     return unsubscribe
   }, [navigation])
 
+  const storeCart = () => {
+    console.log("STORING")
+    localStorage.setItem('cart',JSON.stringify(cartItems))
+    localStorage.setItem('total',JSON.stringify(total))
+}
 
   const toggleVegSwitch = () => {
     setVegFilter(previousState => !previousState)
@@ -125,20 +153,16 @@ const HomeScreen = ({ navigation, route }) => {
   const addCart = (item) => {
     item.cartQuantity += 1
 
-
     if (item.cartQuantity == 1) {
       dispatch(addToCart(item))
     }
     else {
       dispatch(addQuantity(item))
     }
-
   }
 
   const removeFromCart = (item) => {
     item.cartQuantity = item.cartQuantity - 1
-
-
 
     if (item.cartQuantity == 0) {
       dispatch(removeItem(item))
@@ -146,18 +170,20 @@ const HomeScreen = ({ navigation, route }) => {
 
       dispatch(subtractQuantity(item))
     }
+
+    
   }
 
   const renderContent = (item) => {
 
     if (isVegOn) {
       return item.Is_veg == 1 && renderItem(item)
-    }else if(isNonVegOn){
+    } else if (isNonVegOn) {
       return item.Is_veg != 1 && renderItem(item)
     }
-       
+
     return renderItem(item)
-    
+
   };
 
 
@@ -166,7 +192,7 @@ const HomeScreen = ({ navigation, route }) => {
 
     return (
       <View style={{ flexDirection: 'row', padding: 15, paddingLeft: 20, paddingRight: 20, backgroundColor: !item.In_stock && '#F2F2F2' }}>
-        <Image resizeMode='contain' style={{ width: 10, height: 10 }} source={item.Is_veg ==1 ? vegIcon : nonVegIcon}></Image>
+        <Image resizeMode='contain' style={{ width: 10, height: 10 }} source={item.Is_veg == 1 ? vegIcon : nonVegIcon}></Image>
 
         <Text style={{ flex: 1, paddingLeft: 10, fontWeight: '500' }}>{`${item.name}  `}
           {/* {Array(item.spice_level).fill(0).map(() => item.spice_level != null && <Image style={{ width: 9, height: 11 }} source={chillyIcon}></Image>)} */}
@@ -188,7 +214,7 @@ const HomeScreen = ({ navigation, route }) => {
             :
 
             <View style={{ flexDirection: 'row', alignSelf: 'baseline', borderWidth: 0.5, borderColor: Colors.blue, paddingLeft: 5, paddingRight: 5, alignItems: 'center', justifyContent: 'center' }}>
-              
+
               <TouchableOpacity onPress={() => addCart(item)} >
                 <Icon
 
@@ -248,17 +274,19 @@ const HomeScreen = ({ navigation, route }) => {
 
 
           <Right>
-            <Icon onPress={() => navigation.navigate('OrderSuccess', {getBill:false, ...route.params })}
-              style={{ fontSize: 20 }}
-              name="md-heart-empty"></Icon>
+           
             {/* <TouchableOpacity onPress={() => setRatingVisibility(true)}>
             <Image resizeMode='contain' style={{width:20, height: 15 }} source={require('../assets/images/heart.png')}></Image>  
             </TouchableOpacity>   */}
-            {space(10)}
+            
             <Icon
-              // onPress={() => setSearchVisibility(true)}
+              onPress={() => setSearchVisibility(true)}
               style={{ fontSize: 22 }}
               name="ios-search"></Icon>
+            {space(10)}  
+             <Icon onPress={() => navigation.push('OrderSuccess', { getBill: false, ...route.params })}
+              style={{ fontSize: 20 }}
+              name="md-menu"></Icon>  
 
           </Right>
 
@@ -290,7 +318,7 @@ const HomeScreen = ({ navigation, route }) => {
 
           {space(6)}
 
-          <Image resizeMode='contain' style={{width:Layout.window.width*.9, height:150, alignSelf:'center', borderWidth:1, borderColor:Colors.lightGrey, borderRadius:5}} source={require('../assets/images/banner.png')}></Image>
+          <Image resizeMode='contain' style={{ width: Layout.window.width * .9, height: 150, alignSelf: 'center', borderWidth: 1, borderColor: Colors.lightGrey, borderRadius: 5 }} source={require('../assets/images/banner.png')}></Image>
 
 
           {space(6)}
@@ -327,7 +355,7 @@ const HomeScreen = ({ navigation, route }) => {
               <Switch
                 style={{ marginLeft: 5 }}
                 //trackColor={{ false: "#000", true: 'grey' }}
-               // thumbColor={isVegOn ? Colors.green : Colors.lightGrey}
+                // thumbColor={isVegOn ? Colors.green : Colors.lightGrey}
                 ios_backgroundColor="#3e3e3e"
                 onValueChange={toggleVegSwitch}
                 value={isVegOn}
@@ -337,9 +365,9 @@ const HomeScreen = ({ navigation, route }) => {
 
             </View>
 
-            <View style={{position:'absolute',right:10, flexDirection: 'row', padding: 10 }}>
+            <View style={{ position: 'absolute', right: 10, flexDirection: 'row', padding: 10 }}>
 
-            <Text style={{ fontWeight: '400', marginRight: 10 }}>NonVeg Only</Text>
+              <Text style={{ fontWeight: '400', marginRight: 10 }}>NonVeg Only</Text>
               <Switch
                 style={{ marginLeft: 5 }}
                 //trackColor={{ false: "#000", true: Colors.green }}
@@ -349,7 +377,7 @@ const HomeScreen = ({ navigation, route }) => {
                 value={isNonVegOn}
               />
 
-              
+
 
             </View>
 
@@ -408,7 +436,7 @@ const HomeScreen = ({ navigation, route }) => {
           </TouchableOpacity> */}
 
           <TouchableOpacity
-            onPress={() => navigation.navigate('OrderSuccess', { getBill: true, ...route.params })}
+            onPress={() => navigation.push('OrderSuccess', { getBill: true, ...route.params })}
             style={{ flexDirection: 'row', padding: 15, backgroundColor: '#ffdd00', alignSelf: 'center', borderRadius: 5, alignItems: 'center', paddingLeft: 20, paddingRight: 20 }}>
             <Text style={{ fontSize: 15, fontWeight: '600', letterSpacing: 0.2 }}>Pay Now!</Text>
           </TouchableOpacity>
@@ -418,7 +446,11 @@ const HomeScreen = ({ navigation, route }) => {
       }
 
 
-
+{isSearchVisibile && <SearchModal
+        menu={sections} resName={'Demo Restaurant'} coupon={false}
+        visibility={() => setSearchVisibility(false)}
+        addToCart={addCart} removeFromCart={removeFromCart}
+      ></SearchModal>}
       {/* {loading && <Spinner style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, height: Layout.window.height, backgroundColor: 'rgba(52, 52, 52, 0.3)' }} />} */}
     </View>
   );

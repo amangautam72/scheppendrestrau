@@ -42,13 +42,22 @@ export function callOrdersApi(resCode, tableid) {
         // if(isConnected){
         getOpenOrders(resCode, tableid).then(res => {
 
-            //console.log("RESPONSE === " + JSON.stringify(res))
+            console.log("RESPONSE ORDER=== " + JSON.stringify(res))
 
             if (res.status == '1') {
 
                 let list = res.data[0]
-                dispatch(fetchedSuccessfully(list))
-            } else {
+                if(res.data[0].orderdetail.status == 1){
+                  dispatch(fetchedSuccessfully(list))
+                }else{
+                    dispatch(fetchingFailed(res.message))
+                }
+                
+            } 
+            // else if(status == '2'){
+            //     dispatch(fetchedSuccessfully(res.data))
+            // } 
+            else {
                 dispatch(fetchingFailed(res.message))
 
                 // alert(res.message)

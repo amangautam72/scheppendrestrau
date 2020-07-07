@@ -13,7 +13,7 @@ const CartReducer = (state = initialState, action) => {
   switch (action.type) {
     case ADD_TO_CART:
       return {
-        //...state,
+        ...state,
         cartItems: [...state.cartItems, action.item],
         total: state.total + action.item.cost
 
@@ -40,8 +40,8 @@ const CartReducer = (state = initialState, action) => {
     case UPDATE_CART:
       return {
         ...state,
-        cartItems: [],
-        total:0
+        cartItems: action.items,
+        total:action.total
       }
     default:
       return state

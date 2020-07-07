@@ -19,7 +19,6 @@ function menuReducer(state = initialState, action) {
                 isLoading: true,
             }
         case FETCHED_SUCCESSFULLY:
-            console.log("=================== MENU " + JSON.stringify(action.response))
 
             return {
                 data: action.response,

@@ -44,12 +44,6 @@ const OrderSuccess = ({ navigation, route }) => {
 
     const { orders } = response.orderReducer
 
-
-    useEffect(() => {
-        console.log("GET BILL : " +  JSON.stringify(route.params))
-
-    }, []);
-
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
           
@@ -88,8 +82,17 @@ const OrderSuccess = ({ navigation, route }) => {
     }
 
     const onPayNowClick = () => {
-       
-        generateBill(orderid)
+
+       if(!getBill){
+            generateBill(orderid)
+       }else{
+          if(!payOptionVisibility){
+            setPayOptionVisibility(true)
+          }else{
+            setPayOptionVisibility(false)
+          }
+          
+       }
         
     }
 
@@ -127,8 +130,7 @@ const OrderSuccess = ({ navigation, route }) => {
     }
 
     const onBack = () => {
-        navigation.replace("Home",{...route.params})
-        
+        navigation.goBack() 
         
     }
 
@@ -173,7 +175,7 @@ const OrderSuccess = ({ navigation, route }) => {
 
                         <View style={{ flex: 1 }}>
 
-                            <Text style={{ fontSize: 22, letterSpacing: -0.15, lineHeight: 25, fontWeight: '700' }}>{'Harish Bakers'}</Text>
+                            <Text style={{ fontSize: 22, letterSpacing: -0.15, lineHeight: 25, fontWeight: '700' }}>{'Demo Restaurant'}</Text>
                             {/* <Text style={{ lineHeight: 25 }}>Best in: Beer, Pizza, Pasta, Butter Chicken...</Text> */}
                             <Text style={{ color: Colors.lightGrey, lineHeight: 25, fontWeight: '400' }}>{'Sector 7'}</Text>
 

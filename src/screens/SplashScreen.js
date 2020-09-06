@@ -6,13 +6,13 @@ import { Image, Switch, StyleSheet, Text, TouchableOpacity, View, TextInput } fr
 import Colors from '../constants/Colors';
 import Layout from '../constants/Layout'
 
-import { getRestaurant } from '../Services/requests';
+import { getRestaurantInfo } from '../Services/requests';
 
 
 
 const SplashScreen = ({ navigation, route }) => {
 
-  const { restaurantcode, tableid, userImageUri } = route.params
+  const { restaurantcode } = route.params
   const [logo, setLogo] = useState('');
   const [name, setName] = useState('');
   const [locality, setLocality] = useState('');
@@ -20,7 +20,6 @@ const SplashScreen = ({ navigation, route }) => {
 
   useEffect(() => {
 
-    localStorage.setItem('RESCODE', restaurantcode)
     getRestaurantDetails()
 
 
@@ -30,7 +29,7 @@ const SplashScreen = ({ navigation, route }) => {
 
   const getRestaurantDetails = () => {
 
-    getRestaurant(restaurantcode, tableid, idToken).then((res) => {
+    getRestaurantInfo(restaurantcode).then((res) => {
 
       console.log("RESINFO : " + JSON.stringify(res))
 
@@ -39,15 +38,15 @@ const SplashScreen = ({ navigation, route }) => {
 
       
 
-      //setLogo(`http://serene-lake-49953.herokuapp.com/image${res.logo_url}`)
-      setName(res.data.name)
-      setLocality(res.data.location)
+      // //setLogo(`http://serene-lake-49953.herokuapp.com/image${res.logo_url}`)
+      // setName(res.data.name)
+      // setLocality(res.data.location)
       }
 
 
 
       setTimeout(() => {
-        navigation.replace('Home', { ...route.params, userImage: userImageUri, resName: res.name, resLocality: res.locality, raffle: res.raffle, waitertemp: waiterTemperature, waitername: waiterName, waiterimage: waiterImage, configs: resconfig, contests: JSON.stringify(contestPrizes), contestendtime: contestEndTime })
+        navigation.replace('Home', { ...route.params})
       }, 4000)
 
 
@@ -77,12 +76,12 @@ const SplashScreen = ({ navigation, route }) => {
 
       {space(60)}
 
-      <Image style={{ width: 150, height: 150, alignSelf: 'center' }} source={{ uri: logo }}></Image>
+      {/* <Image style={{ width: 150, height: 150, alignSelf: 'center' }} source={{ uri: logo }}></Image> */}
       {/* {space(10)} */}
 
-      <Text style={{ fontSize: 22, alignSelf: 'center', fontFamily: 'PROXIMANOVA-BOLD' }}>{name}</Text>
+      <Text style={{ fontSize: 22, alignSelf: 'center', fontFamily: 'PROXIMANOVA-BOLD' }}>{'name'}</Text>
       {space(2)}
-      <Text style={{ fontSize: 12, alignSelf: 'center', color: Colors.lightGrey, fontFamily: 'PROXIMANOVA-REG' }}>{locality}</Text>
+      <Text style={{ fontSize: 12, alignSelf: 'center', color: Colors.lightGrey, fontFamily: 'PROXIMANOVA-REG' }}>{'locality'}</Text>
 
 
       <View style={{ flex: 1, justifyContent: 'flex-end', padding: 40 }}>
@@ -90,7 +89,7 @@ const SplashScreen = ({ navigation, route }) => {
         <View>
           <Text style={{ fontSize: 12, alignSelf: 'center' }}>{`From`}</Text>
           {space(5)}
-          <Text style={{ fontSize: 26, fontWeight: 'bold', alignSelf: 'center', color: Colors.blue }}>{`DINEX`}</Text>
+          <Text style={{ fontSize: 26, fontWeight: 'bold', alignSelf: 'center', color: Colors.blue }}>{`EnjoyDine`}</Text>
         </View>
 
       </View>

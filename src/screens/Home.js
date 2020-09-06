@@ -47,7 +47,7 @@ const HomeScreen = ({ navigation, route }) => {
   const dispatch = useDispatch()
 
   const { total, cartItems } = response.cartReducer
-  const { order_status, orderid, orders } = response.orderReducer
+  const { order_status, orderid, orders, tokenExpired } = response.orderReducer
 
 
   useEffect(() => {
@@ -94,6 +94,11 @@ const HomeScreen = ({ navigation, route }) => {
   }, [response.cartReducer]);
 
   useEffect(() => {
+    // if(tokenExpired){
+    //   localStorage.clear()
+    //   navigation.replace("Signup")
+    //   return
+    // }
     setOrderOpen(order_status)
   }, [response.orderReducer]);
 
@@ -371,7 +376,7 @@ const HomeScreen = ({ navigation, route }) => {
               <Switch
                 style={{ marginLeft: 5 }}
                 //trackColor={{ false: "#000", true: Colors.green }}
-                thumbColor={isNonVegOn ? Colors.green : Colors.lightGrey}
+                //thumbColor={isNonVegOn ? Colors.green : Colors.lightGrey}
                 ios_backgroundColor="#3e3e3e"
                 onValueChange={toggleNonVegSwitch}
                 value={isNonVegOn}

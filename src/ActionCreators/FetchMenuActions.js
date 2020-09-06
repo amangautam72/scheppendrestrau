@@ -43,7 +43,7 @@ export function callMenuApi(resCode) {
         // if(isConnected){
         getMenu(resCode).then(res => {
 
-            //console.log("RESPONSE === " + JSON.stringify(res))
+            console.log("RESPONSE === " + JSON.stringify(res))
 
             if (res.status == '1') {
 

@@ -9,5 +9,6 @@ export default {
     MODIFY_ORDER: SERVER_ADDRESS + '/updateorder',
     ORDERS: SERVER_ADDRESS + '/getorderdetail?',
     GENERATE_BILL: SERVER_ADDRESS + '/genratebill?',
+    GENERATE_SIGNATURE: SERVER_ADDRESS + '/request',
 
 }

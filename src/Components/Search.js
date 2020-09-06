@@ -100,14 +100,6 @@ const SearchModal = (props) => {
 
   }
 
-  const filter = () => {
-    console.log("FILTER")
-  }
-
-  
-
-
-
 
   const renderItem = ({ item }) => {
 

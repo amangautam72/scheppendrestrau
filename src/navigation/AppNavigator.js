@@ -10,6 +10,7 @@ import OtpScreen from '../screens/OtpScreen'
 import HomeScreen from '../screens/Home'
 import CartScreen from '../screens/Cart'
 import OrderScreen from '../screens/OrderSuccess'
+import SplashScreen from '../screens/SplashScreen';
 
 
 const Stack = createStackNavigator();
@@ -21,6 +22,7 @@ export default function AppNavigator(){
     <View style={styles.container}>
         <NavigationContainer linking={LinkingConfiguration}>
           <Stack.Navigator>
+            <Stack.Screen options={{ headerShown: false }} name="Splash" component={SplashScreen} />
             <Stack.Screen options={{ headerShown: false }} name="Home" component={HomeScreen} />
             <Stack.Screen options={{ headerShown: false }} name="Cart" component={CartScreen} />
             <Stack.Screen options={{ headerShown: false }} name="OrderSuccess" component={OrderScreen} />

@@ -1,6 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
-import React, { useState, useEffect } from 'react';
-import { Image, Switch, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Image, Switch, StyleSheet, Text, TouchableOpacity, View, TextInput, Alert } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 
 import { Container, Left, Header, Icon, Right, Spinner } from 'native-base';
@@ -10,6 +10,9 @@ import { Container, Left, Header, Icon, Right, Spinner } from 'native-base';
 // import beKindBadge from '../assets/images/bekindbadge.svg';
 // import note from '../assets/images/note.svg';
 
+import * as Crypto from 'expo-crypto';
+
+
 import { useSelector, useDispatch } from 'react-redux'
 
 
@@ -17,14 +20,29 @@ import Colors from '../constants/Colors';
 import Layout from '../constants/Layout'
 
 import { callOrdersApi } from '../ActionCreators/OrderActions';
-import { getGeneratedBill } from '../Services/Requests';
+import { getGeneratedBill, genrateSignature } from '../Services/Requests';
+import { CryptoEncoding } from 'expo-crypto';
 // import RatingModal from '../components/Rating'; 
 
 
+var DATA = {
+    appId: "15169a9bd87588a162d08da2896151",
+    orderId: "order00001",
+    orderAmount: "100",
+    orderCurrency: "INR",
+    orderNote: "test",
+    customerName: "John Doe",
+    customerEmail: "Johndoe@test.com",
+    customerPhone: "9999999999",
+    returnUrl: "www.enjoydine.com",
+    notifyUrl: "www.enjoydine.com",
+    signature: "810fe633714b3462c7d4844e63dacd6741bb6ec1"
+}
 
+var signatureKey = "810fe633714b3462c7d4844e63dacd6741bb6ec1"
 const OrderSuccess = ({ navigation, route }) => {
 
-    const {restaurantcode, tableid } = route.params
+    const { restaurantcode, tableid } = route.params
 
     // const resInfo = route.params ? route.params.resInfo : null;
     // const tableid = route.params ? route.params.tableid : null;
@@ -37,35 +55,65 @@ const OrderSuccess = ({ navigation, route }) => {
     const [loading, setLoading] = useState(true);
     const [isRatingVisibile, setRatingVisibility] = useState(false);
     const [payOptionVisibility, setPayOptionVisibility] = useState(false);
+    const [paynow,setPaynow] = useState(false);
+    const [payment, setPayment] = useState({
+        appId: DATA.appId,
+        orderId: "",
+        orderAmount: 0,
+        orderCurrency: "",
+        orderNote: "",
+        customerName: "",
+        customerPhone: "",
+        customerEmail: "",
+        returnUrl: "",
+        notifyUrl: "",
+        signature: ""
+    });
 
 
     const response = useSelector(state => state)
     const dispatch = useDispatch()
 
-    const { orders } = response.orderReducer
+    const { orders, isLoading } = response.orderReducer
+
+
+    useEffect(() => {
+        var signatureData = {
+            appId: DATA.appId,
+            orderId: DATA.orderId,
+            orderAmount: DATA.orderAmount,
+            orderCurrency: DATA.orderCurrency,
+            orderNote: DATA.orderNote,
+            customerName: DATA.customerName,
+            customerPhone: DATA.customerPhone,
+            customerEmail: DATA.customerEmail,
+            returnUrl: DATA.returnUrl,
+            notifyUrl: DATA.notifyUrl,
+        }
+
+    }, [])
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-          
-          // if(sections.length > 0 ){
-          //   checkCart(sections)
-          // }
-    
-          dispatch(callOrdersApi(restaurantcode,tableid))
 
-          if(getBill){
-            console.log("FOCUSED  " + JSON.stringify(getBill))
-              generateBill()
-          }
-  
+            // if(sections.length > 0 ){
+            //   checkCart(sections)
+            // }
+
+            dispatch(callOrdersApi(restaurantcode, tableid))
+
+            if (getBill) {
+                generateBill()
+            }
+
         })
         return unsubscribe
-      }, [navigation])
+    }, [navigation])
 
 
     const generateBill = () => {
         setLoading(true)
-        getGeneratedBill(restaurantcode,tableid).then((res) => {
+        getGeneratedBill(restaurantcode, tableid).then((res) => {
             console.log("RES :" + JSON.stringify(res))
 
             if (res.status == '1') {
@@ -74,7 +122,7 @@ const OrderSuccess = ({ navigation, route }) => {
                 setLoading(false)
                 //screenX(1)
                 setPayOptionVisibility(true)
-                navigation.setParams({getBill:false})
+                navigation.setParams({ getBill: false })
             } else {
                 setLoading(false)
             }
@@ -83,17 +131,17 @@ const OrderSuccess = ({ navigation, route }) => {
 
     const onPayNowClick = () => {
 
-       if(!getBill){
+        if (!getBill) {
             generateBill(orderid)
-       }else{
-          if(!payOptionVisibility){
-            setPayOptionVisibility(true)
-          }else{
-            setPayOptionVisibility(false)
-          }
-          
-       }
-        
+        } else {
+            if (!payOptionVisibility) {
+                setPayOptionVisibility(true)
+            } else {
+                setPayOptionVisibility(false)
+            }
+
+        }
+
     }
 
 
@@ -130,8 +178,71 @@ const OrderSuccess = ({ navigation, route }) => {
     }
 
     const onBack = () => {
-        navigation.goBack() 
+        navigation.goBack()
+
+    }
+
+    const submitPayment = async () => {
+
+        const res = await genrateSignature(bill.Payamount,restaurantcode,tableid)
+        if (res.status == "1") {
+            setPayment(res.data)
+            setPaynow(true)
+        }
+        // var x = document.getElementById('redirectForm')
+        // x.submit()
+
+    }
+
+    const onAskForCash = () => {
+
         
+    }
+
+    const confirmPayment = () => {
+        return (
+            <View style={{ paddingLeft: 20, paddingRight: 20,backgroundColor:'white', borderRadius:10,width:Layout.window.width*.8 }}>
+                {space(10)}
+
+                <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-SBOLD' }}>{`Bill Details`}</Text>
+                {space(8)}
+                <View style={{ flexDirection: 'row' }}>
+
+                    <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Bill Items`}</Text>
+                    <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${bill.Payamount}`} </Text>
+                </View>
+
+
+                {space(6)}
+
+
+                <View style={{ flexDirection: 'row' }}>
+
+                    <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Taxes & Charges `}</Text>
+                    <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${Math.round((bill.tax + bill.service_charge) * 100) / 100}`} </Text>
+                </View>
+
+                {space(6)}
+
+
+                <View style={{ flexDirection: 'row' }}>
+
+                    <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Discounts`}</Text>
+                    <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${bill.Discount}`} </Text>
+                </View>
+
+                {space(6)}
+
+                <TouchableOpacity
+                    onPress={() => document.getElementById('redirectForm').submit()}
+                    style={{ padding: 12, backgroundColor: '#ffdd00', borderRadius: 5, alignItems: 'center', paddingLeft: 20, paddingRight: 20 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', letterSpacing: 0.2, textAlign:'center' }}>Pay Now!</Text>
+                </TouchableOpacity>
+
+
+            </View>
+
+        )
     }
 
 
@@ -139,6 +250,7 @@ const OrderSuccess = ({ navigation, route }) => {
         <View
             style={styles.container}
         >
+            
             <ScrollView style={{ height: Layout.window.height }}>
                 <View >
 
@@ -151,10 +263,10 @@ const OrderSuccess = ({ navigation, route }) => {
 
 
                         <Right>
-                        <Icon 
-                        onPress={() => setRatingVisibility(true)}
-                        style={{fontSize:20}}
-                         name="md-heart-empty"></Icon> 
+                            <Icon
+                                onPress={() => setRatingVisibility(true)}
+                                style={{ fontSize: 20 }}
+                                name="md-heart-empty"></Icon>
 
 
 
@@ -192,8 +304,8 @@ const OrderSuccess = ({ navigation, route }) => {
                     {space(6)}
 
                     <View style={{ flexDirection: 'row', borderWidth: 0.5, borderColor: Colors.blue, borderRadius: 5, padding: 10, alignItems: 'center', marginLeft: 20, marginRight: 20 }}>
-                        <Text style={{ fontSize: 22, color: Colors.blue, fontWeight:'600' }}>NOTE</Text>
-                        <Text style={{ flex: 1, fontSize: 10, color: Colors.blue, padding: 5,paddingLeft:10 }}>{`You can't modify your order once you have placed it but you definitely order more by going back to the menu page. Have a Happy Meal.`}</Text>
+                        <Text style={{ fontSize: 22, color: Colors.blue, fontWeight: '600' }}>NOTE</Text>
+                        <Text style={{ flex: 1, fontSize: 10, color: Colors.blue, padding: 5, paddingLeft: 10 }}>{`You can't modify your order once you have placed it but you definitely order more by going back to the menu page. Have a Happy Meal.`}</Text>
 
                     </View>
 
@@ -207,8 +319,8 @@ const OrderSuccess = ({ navigation, route }) => {
 
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, paddingLeft: 20, paddingRight: 20 }}>
-                    {/* <Image resizeMode='contain' style={{ width: 17, height: 17 }} source={note}></Image> */}
-                        <Text style={{ flex: 1, fontSize: 11, color: Colors.lightGrey, padding: 10,fontFamily:'PROXIMANOVA-REG' }}>{'comment'}</Text>
+                        {/* <Image resizeMode='contain' style={{ width: 17, height: 17 }} source={note}></Image> */}
+                        <Text style={{ flex: 1, fontSize: 11, color: Colors.lightGrey, padding: 10, fontFamily: 'PROXIMANOVA-REG' }}>{'comment'}</Text>
 
                     </View>
 
@@ -223,15 +335,15 @@ const OrderSuccess = ({ navigation, route }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
 
-                            <Text style={{ flex: 1, fontFamily:'PROXIMANOVA-SBOLD' }}>{`Support our waiters\n`}<Text style={{fontSize:10, color: Colors.lightGrey,fontWeight:'400' }}>{`How it works`}</Text></Text>
+                            <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-SBOLD' }}>{`Support our waiters\n`}<Text style={{ fontSize: 10, color: Colors.lightGrey, fontWeight: '400' }}>{`How it works`}</Text></Text>
 
-                            
+
 
                         </View>
 
                         {space(5)}
 
-                        <Text style={{ flex: 1, fontSize: 10,fontWeight:'400' }}>{`You can show a gesture of kind efforts towards your waiter for helping you\nenjoy safely. Support them through these tough times with a tip.`}</Text>
+                        <Text style={{ flex: 1, fontSize: 10, fontWeight: '400' }}>{`You can show a gesture of kind efforts towards your waiter for helping you\nenjoy safely. Support them through these tough times with a tip.`}</Text>
 
 
                         {space(5)}
@@ -239,13 +351,13 @@ const OrderSuccess = ({ navigation, route }) => {
                         <View style={{ flexDirection: 'row', alignSelf: 'center' }}>
 
                             <TouchableOpacity style={{ margin: 10, padding: 20, paddingLeft: 30, paddingRight: 30, borderWidth: 0.5, borderColor: Colors.lightGrey, borderRadius: 5 }}>
-                                <Text style={{ fontWeight: '500', fontFamily:'PROXIMANOVA-SBOLD'}}>{`${'\u20B9'} 20`} </Text>
+                                <Text style={{ fontWeight: '500', fontFamily: 'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} 20`} </Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={{ margin: 10, padding: 20, paddingLeft: 30, paddingRight: 30, borderWidth: 0.5, borderColor: Colors.lightGrey, borderRadius: 5 }}>
-                                <Text style={{ fontWeight: '500',fontFamily:'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} 30`} </Text>
+                                <Text style={{ fontWeight: '500', fontFamily: 'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} 30`} </Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={{ margin: 10, padding: 20, paddingLeft: 30, paddingRight: 30, borderWidth: 0.5, borderColor: Colors.lightGrey, borderRadius: 5 }}>
-                                <Text style={{ fontWeight: '500',fontFamily:'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} 50`} </Text>
+                                <Text style={{ fontWeight: '500', fontFamily: 'PROXIMANOVA-SBOLD' }}>{`${'\u20B9'} 50`} </Text>
                             </TouchableOpacity>
                         </View>
 
@@ -259,10 +371,10 @@ const OrderSuccess = ({ navigation, route }) => {
 
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, paddingLeft: 20, paddingRight: 20 }}>
-                   
-                        
+
+
                         <TextInput
-                            style={{ flex: 1, fontSize: 11, padding: 10,fontFamily:'PROXIMANOVA-REG' }}
+                            style={{ flex: 1, fontSize: 11, padding: 10, fontFamily: 'PROXIMANOVA-REG' }}
                             placeholder='Have any Coupon?'
                             placeholderTextColor={Colors.lightGrey}
                             onChangeText={text => setComment(text)}
@@ -283,12 +395,12 @@ const OrderSuccess = ({ navigation, route }) => {
                         <View style={{ paddingLeft: 20, paddingRight: 20 }}>
                             {space(10)}
 
-                            <Text style={{ flex: 1, fontFamily:'PROXIMANOVA-SBOLD' }}>{`Bill Details`}</Text>
+                            <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-SBOLD' }}>{`Bill Details`}</Text>
                             {space(8)}
                             <View style={{ flexDirection: 'row' }}>
 
-                                <Text style={{ flex: 1,fontFamily:'PROXIMANOVA-REG' }}>{`Bill Items`}</Text>
-                                <Text style={{fontFamily:'PROXIMANOVA-REG'}}>{`${'\u20B9'} ${bill.Payamount}`} </Text>
+                                <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Bill Items`}</Text>
+                                <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${bill.Payamount}`} </Text>
                             </View>
 
 
@@ -297,8 +409,8 @@ const OrderSuccess = ({ navigation, route }) => {
 
                             <View style={{ flexDirection: 'row' }}>
 
-                                <Text style={{ flex: 1,fontFamily:'PROXIMANOVA-REG' }}>{`Taxes & Charges (18% GST)`}</Text>
-                                <Text style={{fontFamily:'PROXIMANOVA-REG'}}>{`${'\u20B9'} ${Math.round((bill.tax + bill.service_charge) * 100) / 100}`} </Text>
+                                <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Taxes & Charges (18% GST)`}</Text>
+                                <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${Math.round((bill.tax + bill.service_charge) * 100) / 100}`} </Text>
                             </View>
 
                             {space(6)}
@@ -306,8 +418,8 @@ const OrderSuccess = ({ navigation, route }) => {
 
                             <View style={{ flexDirection: 'row' }}>
 
-                                <Text style={{ flex: 1,fontFamily:'PROXIMANOVA-REG' }}>{`Discounts`}</Text>
-                                <Text style={{fontFamily:'PROXIMANOVA-REG'}}>{`${'\u20B9'} ${bill.Discount}`} </Text>
+                                <Text style={{ flex: 1, fontFamily: 'PROXIMANOVA-REG' }}>{`Discounts`}</Text>
+                                <Text style={{ fontFamily: 'PROXIMANOVA-REG' }}>{`${'\u20B9'} ${bill.Discount}`} </Text>
                             </View>
 
                             {space(6)}
@@ -326,41 +438,70 @@ const OrderSuccess = ({ navigation, route }) => {
 
             </ScrollView>
 
-            <View style={{ position: 'absolute', bottom: 20,alignSelf:'center'}}>
-               {payOptionVisibility && <View style={{borderWidth:1,borderColor:'#ffdd00',borderRadius:5, padding:10, backgroundColor:'white', marginBottom:10,shadowColor: '#ffdd00',
-    
-            shadowOpacity: 0.6,
-            shadowRadius: 8,
-             }}>
-              <TouchableOpacity style={{flexDirection:'row', padding:12}}>
-                  {/* <Image resizeMode="contain" style={{height:13,width:21, marginRight:10}} source={require('../assets/images/pay.png')}></Image> */}
-                  <Text style={{fontSize:10,fontWeight: '400'}}>Online Payment</Text>
-            </TouchableOpacity>  
-            <View style={{height:1,backgroundColor:'#F2F2F2',margin:5}}></View>
-            <TouchableOpacity style={{flexDirection:'row', padding:12}}>
-                    {/* <Image resizeMode="contain" style={{height:13,width:21, marginRight:10}} source={require('../assets/images/money.png')}></Image> */}
-                  <Text style={{fontSize:10,fontWeight: '400'}}>Ask for bill? Cash Payment</Text>
-            </TouchableOpacity> 
-            </View>     
-}
-            <TouchableOpacity
-                onPress={onPayNowClick}
-                style={{ flexDirection: 'row', padding: 12, backgroundColor: '#ffdd00', alignSelf: 'stretch', borderRadius: 5, alignItems: 'center', paddingLeft: 20, paddingRight: 20 }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', letterSpacing: 0.2 }}>Pay Now!</Text>
-                {space(10)}
-                {getBill && <View style={{ flexDirection: 'row' }}>
-                    <View style={{ height: 18, width: 1, backgroundColor: Colors.lightGrey }}></View>
-                    {space(5)}
-                    <Text style={{ textAlign: 'center', padding: 5, fontWeight: '700', letterSpacing: 0.2 }}>{`${'\u20B9'} ${bill.Payamount}`}</Text>
+            <View style={{ position: 'absolute', bottom: 20, alignSelf: 'center' }}>
+                {payOptionVisibility && <View style={{
+                    borderWidth: 1, borderColor: '#ffdd00', borderRadius: 5, padding: 10, backgroundColor: 'white', marginBottom: 10, shadowColor: '#ffdd00',
+
+                    shadowOpacity: 0.6,
+                    shadowRadius: 8,
+                }}>
+                    <TouchableOpacity
+                        onPress={submitPayment}
+                        style={{ flexDirection: 'row', padding: 12 }}>
+                        {/* <Image resizeMode="contain" style={{height:13,width:21, marginRight:10}} source={require('../assets/images/pay.png')}></Image> */}
+                        <Text style={{ fontSize: 10, fontWeight: '400' }}>Online Payment</Text>
+
+
+                        <form id="redirectForm" method="post" action="https://test.cashfree.com/billpay/checkout/post/submit">
+                            <input type="hidden" name="appId" value={payment.appId} />
+                            <input type="hidden" name="orderId" value={payment.orderId} />
+                            <input type="hidden" name="orderAmount" value={payment.orderAmount} />
+                            <input type="hidden" name="orderCurrency" value={payment.orderCurrency} />
+                            <input type="hidden" name="orderNote" value={payment.orderNote} />
+                            <input type="hidden" name="customerName" value={payment.customerName} />
+                            <input type="hidden" name="customerEmail" value={payment.customerEmail} />
+                            <input type="hidden" name="customerPhone" value={payment.customerPhone} />
+                            <input type="hidden" name="returnUrl" value={payment.returnUrl} />
+                            <input type="hidden" name="notifyUrl" value={payment.notifyUrl} />
+                            <input type="hidden" name="signature" value={payment.signature} />
+                            <input style={{ fontSize: 10, padding: 15, borderRadius: 10, borderWidth: 0, backgroundColor: 'white' }} type="hidden" value="Online Payment"></input>
+                        </form>
+                    </TouchableOpacity>
+                    <View style={{ height: 1, backgroundColor: '#F2F2F2', margin: 5 }}></View>
+                    <TouchableOpacity
+                        onPress={onAskForCash}
+                        style={{ flexDirection: 'row', padding: 12 }}>
+                        {/* <Image resizeMode="contain" style={{height:13,width:21, marginRight:10}} source={require('../assets/images/money.png')}></Image> */}
+                        <Text style={{ fontSize: 10, fontWeight: '400' }}>Ask for bill? Cash Payment</Text>
+                    </TouchableOpacity>
                 </View>
                 }
+                <TouchableOpacity
+                    onPress={onPayNowClick}
+                    style={{ flexDirection: 'row', padding: 12, backgroundColor: '#ffdd00', alignSelf: 'stretch', borderRadius: 5, alignItems: 'center', paddingLeft: 20, paddingRight: 20 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', letterSpacing: 0.2 }}>Pay Now!</Text>
+                    {space(10)}
+                    {getBill && <View style={{ flexDirection: 'row' }}>
+                        <View style={{ height: 18, width: 1, backgroundColor: Colors.lightGrey }}></View>
+                        {space(5)}
+                        <Text style={{ textAlign: 'center', padding: 5, fontWeight: '700', letterSpacing: 0.2 }}>{`${'\u20B9'} ${bill.Payamount}`}</Text>
+                    </View>
+                    }
+                </TouchableOpacity>
+
+            </View>
+
+
+            {isLoading && <Spinner style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, height: Layout.window.height, backgroundColor: 'rgba(52, 52, 52, 0.3)' }} />}
+
+            {paynow &&         
+            <TouchableOpacity 
+            activeOpacity={0}
+            onPress={() => setPaynow(false)}
+            style={{position:'absolute',top:0,bottom:0,left:0,right:0,justifyContent:'center',backgroundColor:'rgba(50,50,50,0.5)',alignItems:'center'}}>
+                {confirmPayment()}
             </TouchableOpacity>
-
-            </View>        
-
-
-            {/* {loading && <Spinner style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, height: Layout.window.height, backgroundColor: 'rgba(52, 52, 52, 0.3)' }} />} */}
-
+}           
 
 
         </View>

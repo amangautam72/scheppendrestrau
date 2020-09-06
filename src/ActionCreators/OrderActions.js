@@ -1,4 +1,4 @@
-import { FETCHING_ORDERS, ORDER_FETCHED, ORDER_FETCHING_FAILED, NO_INTERNET } from '../constants/ActionTypes'
+import { FETCHING_ORDERS, ORDER_FETCHED, ORDER_FETCHING_FAILED, TOKEN_EXPIRED } from '../constants/ActionTypes'
 
 import { getOpenOrders } from '../Services/Requests'
 
@@ -25,6 +25,13 @@ export function fetchingFailed(message) {
     }
 }
 
+export function tokenExpired() {
+    return {
+        type: TOKEN_EXPIRED,
+
+    }
+}
+
 // export function noInternet(){
 //     return {
 //         type: NO_INTERNET,
@@ -47,16 +54,16 @@ export function callOrdersApi(resCode, tableid) {
             if (res.status == '1') {
 
                 let list = res.data[0]
-                if(res.data[0].orderdetail.status == 1){
+                if(res.data[0].orderdetail.status == 1 || res.data[0].orderdetail.status == 2){
                   dispatch(fetchedSuccessfully(list))
                 }else{
-                    dispatch(fetchingFailed(res.message))
+                    dispatch(fetchingFailed('No Open Orders'))
                 }
                 
             } 
-            // else if(status == '2'){
-            //     dispatch(fetchedSuccessfully(res.data))
-            // } 
+            else if(res.status == 5){
+                dispatch(tokenExpired())
+            } 
             else {
                 dispatch(fetchingFailed(res.message))
 

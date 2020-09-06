@@ -29,7 +29,7 @@ const CartScreen = ({ navigation, route }) => {
     const [products, setProducts] = useState([])
     const [comment, setComment] = useState('')
     const [cartTotal, setCartTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setLoading] = useState(false);
     const [isRatingVisibile, setRatingVisibility] = useState(false);
     //const { resInfo, tableid } = route.params
 
@@ -117,7 +117,7 @@ const CartScreen = ({ navigation, route }) => {
     const modifyPlacedOrder = (orderId, products) => {
         setLoading(true)
 
-        modifyOrder(orderId, products).then((res) => {
+        modifyOrder(orderId, products, total).then((res) => {
             console.log("RESPONSE MODIFY = " + JSON.stringify(res))
 
             if (res.status == 1) {
@@ -337,7 +337,7 @@ const CartScreen = ({ navigation, route }) => {
 
             {/* {isRatingVisibile && <RatingModal visibility={() => setRatingVisibility(false)}></RatingModal>} */}
 
-            {/* {loading && <Spinner style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, height: Layout.window.height, backgroundColor: 'rgba(52, 52, 52, 0.3)' }} />} */}
+            {isLoading && <Spinner style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, height: Layout.window.height, backgroundColor: 'rgba(52, 52, 52, 0.3)' }} />}
         </View>
     );
 }

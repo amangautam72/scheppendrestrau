@@ -1,4 +1,4 @@
-import { FETCHING_ORDERS, ORDER_FETCHED, ORDER_FETCHING_FAILED, NO_INTERNET } from '../constants/ActionTypes'
+import { FETCHING_ORDERS, ORDER_FETCHED, ORDER_FETCHING_FAILED, TOKEN_EXPIRED } from '../constants/ActionTypes'
 
 const initialState = {
     order_status: false,
@@ -7,8 +7,8 @@ const initialState = {
     isLoading: false,
     fetched: false,
     error: false,
-    noInternet: false
-
+    noInternet: false,
+    tokenExpired: false
 }
 
 
@@ -34,9 +34,15 @@ function orderReducer(state = initialState, action) {
             return {
                 ...state,
                 isLoading: false,
+                order_status: false,
                 message: action.message,
                 error: true,
             }
+        case TOKEN_EXPIRED:
+            return {
+                ...state,
+                tokenExpired: true
+            }    
 
         // case NO_INTERNET:
         //     return {

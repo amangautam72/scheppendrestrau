@@ -43,6 +43,7 @@ const OtpScreen = ({ navigation, route }) => {
                 console.log("RESPONSE === " + JSON.stringify(res))
                 
                 if(res.status == '1'){
+                    storeToken(res.data[0].login_token)
                     navigation.replace('Home',{...route.params})
                     
                 }else{
@@ -53,6 +54,10 @@ const OtpScreen = ({ navigation, route }) => {
             .catch((err) => console.log("ERROR : " + err))
 
        
+    }
+
+    const storeToken = (token) => {
+        localStorage.setItem('auth',token)
     }
 
     const resendOtp = () => {
